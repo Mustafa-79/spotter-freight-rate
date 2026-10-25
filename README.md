@@ -92,10 +92,18 @@ The fixes follow the EDA findings ([`freight/cleaning.py`](freight/cleaning.py))
   - weekday, equipment, pickup and delivery city;
   - lane effects, shrunk strongly because each lane has only ~10 loads.
 
-[`notebooks/02_modelling.ipynb`](notebooks/02_modelling.ipynb) compares them on the walk-forward folds and shows what the final model learned. The comparison also runs from the command line:
+[`notebooks/02_modelling.ipynb`](notebooks/02_modelling.ipynb) compares them on the walk-forward folds, shows what the final model learned, and scores both once on the September–October test period:
+
+| MAPE (average % error) | Walk-forward folds (Jan–Aug) | Test (Sep–Oct) |
+|---|---|---|
+| Baseline: linear regression | 1.73% | 1.70% |
+| Final model | 1.37% | 1.41% |
+
+The comparison also runs from the command line:
 
 ```bash
 python -m freight.evaluate
+python -m freight.evaluate --test
 python -m nbconvert --to notebook --execute --inplace notebooks/02_modelling.ipynb
 ```
 
