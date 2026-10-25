@@ -18,16 +18,20 @@ The original assessment instructions are in [`docs/assessment_readme.md`](docs/a
 ├── freight/
 │   ├── cleaning.py                          # data-quality fixes and corrupted-price screen
 │   ├── data.py                              # loading the assessment files
+│   ├── evaluate.py                          # scoring models on the folds and the test period
 │   ├── features.py                          # feature table shared by all models
+│   ├── models.py                            # baseline and final model
 │   ├── report_figures.py                    # report figures not produced by a notebook
 │   ├── style.py                             # shared figure style
 │   └── validation.py                        # time-based validation split and accuracy measures
 ├── notebooks/
-│   └── 01_eda.ipynb                         # exploratory data analysis (labelled data only)
+│   ├── 01_eda.ipynb                         # exploratory data analysis (labelled data only)
+│   └── 02_modelling.ipynb                   # baseline vs final model, and what the final model learned
 ├── reports/
 │   ├── eda_findings.md                      # summary of EDA findings
 │   └── figures/
 │       ├── eda/                             # EDA figures
+│       ├── model/                           # model comparison figures
 │       └── validation/                      # validation design figure
 ├── tests/                                   # automated checks of cleaning, features and splits
 ├── score.py                                 # provided scorer: validates outputs, draws December chart
@@ -75,6 +79,25 @@ The fixes follow the EDA findings ([`freight/cleaning.py`](freight/cleaning.py))
 [`freight/features.py`](freight/features.py) builds one feature table for every model: distance, equipment, weight, market index, pickup and delivery city with coordinates, and calendar features (time trend, weekday, and a quarter-end ramp that builds over the last five weeks of each quarter). Anything learned from data, including the corrupted-price screen, is fitted on each split's training rows only.
 
 `quote_signal` is deliberately left out: its relationship with price switches on and off from month to month, and in walk-forward validation a model using it mispriced a whole two-month fold by about 12%.
+
+## Models
+
+[`freight/models.py`](freight/models.py) defines the two models. Both are trained on log price and return dollars.
+
+- **Baseline:** plain linear regression on the feature table as it is.
+- **Final model:** a regularised linear model whose inputs follow the EDA:
+  - smooth curves for distance and weight;
+  - a straight-line market index effect and upward drift;
+  - a quarter-end ramp sized separately for each equipment type;
+  - weekday, equipment, pickup and delivery city;
+  - lane effects, shrunk strongly because each lane has only ~10 loads.
+
+[`notebooks/02_modelling.ipynb`](notebooks/02_modelling.ipynb) compares them on the walk-forward folds and shows what the final model learned. The comparison also runs from the command line:
+
+```bash
+python -m freight.evaluate
+python -m nbconvert --to notebook --execute --inplace notebooks/02_modelling.ipynb
+```
 
 ## Tests
 
