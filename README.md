@@ -16,6 +16,9 @@ The original assessment instructions are in [`docs/assessment_readme.md`](docs/a
 ├── docs/
 │   └── assessment_readme.md                 # instructions provided with the assessment
 ├── freight/
+│   ├── cleaning.py                          # data-quality fixes and corrupted-price screen
+│   ├── data.py                              # loading the assessment files
+│   ├── features.py                          # feature table shared by all models
 │   ├── report_figures.py                    # report figures not produced by a notebook
 │   ├── style.py                             # shared figure style
 │   └── validation.py                        # time-based validation split and accuracy measures
@@ -26,7 +29,9 @@ The original assessment instructions are in [`docs/assessment_readme.md`](docs/a
 │   └── figures/
 │       ├── eda/                             # EDA figures
 │       └── validation/                      # validation design figure
+├── tests/                                   # automated checks of cleaning, features and splits
 ├── score.py                                 # provided scorer: validates outputs, draws December chart
+├── pytest.ini
 ├── requirements.txt
 └── README.md
 ```
@@ -57,6 +62,22 @@ Accuracy is measured as mean absolute percentage error (MAPE), with mean absolut
 
 ```bash
 python -m freight.report_figures
+```
+
+## Data cleaning and features
+
+The fixes follow the EDA findings ([`freight/cleaning.py`](freight/cleaning.py)):
+
+- **Corrupted prices** (about 1.4% of loads, scaled up or down by a factor of 2–6) are flagged by comparing each posted rate with what comparable loads cost, and are excluded from training and from scoring.
+- **Negative weights** are sign flips and are made positive; missing and capped (47,500 lb) weights are flagged.
+- **Missing market index** values are filled with the average of the same day's loads.
+
+[`freight/features.py`](freight/features.py) builds one feature table for every model: distance, equipment, weight, market index, `quote_signal`, pickup and delivery city with coordinates, and calendar features (time trend, weekday, position relative to the quarter end). Anything learned from data, including the corrupted-price screen, is fitted on each split's training rows only.
+
+## Tests
+
+```bash
+python -m pytest
 ```
 
 ## Scoring the outputs
