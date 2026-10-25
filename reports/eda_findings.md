@@ -38,15 +38,15 @@ Stated distance agrees with the coordinates: it is about 1.18 × the straight-li
 1. **Distance** dominates: on its own it explains about 99% of the variation in log price. Pricing behaves like a fixed charge (≈ $250) plus a per-mile rate (≈ $1.75–2.00), so short hauls cost more per mile.
 2. **Equipment** adds a constant *percentage* at every distance: Reefer +13%, Flatbed +8% over Dry Van.
 3. **Weight** adds up to ~8%, on an S-shaped curve: flat below 20K lb, steep from 20K to 40K, flat above. The curve is the same for all equipment types.
-4. **Location** shifts price by up to ±4%: Texas/Oklahoma cities are pricier, Northeast/Great Lakes cities cheaper. A city has the same effect whether it is the origin or the destination (r = 0.99), and neighbouring cities price alike.
+4. **Location** shifts price by up to ±4%: Texas/Oklahoma cities are pricier, Northeast/Great Lakes cities cheaper. A city has the same effect whether it is the origin or the destination (r = 0.99), and neighbouring cities price alike. On top of the two city effects, individual lanes deviate by about ±0.9%.
 5. **`market_index`** tracks the market's daily price level: a ~10% seasonal swing, sudden steps (up in mid-April, down in late July) and a weekly cycle.
 6. **Calendar:** two patterns remain after the market index.
    - A steady upward drift of about +0.6% a month (+6% over the period).
-   - **A ramp of about +4% over the last three weeks of every quarter, which resets the next day.** It looks identical in March, June and September; ordinary month-ends show nothing.
+   - **A ramp over the last five weeks of every quarter, accelerating into the last day and resetting the next day.** It looks identical in March, June and September; month-ends outside that window show nothing. Its size depends on equipment: on a quarter's last day, **Dry Van +2.4%, Reefer +5.1%, Flatbed +8.1%**.
 
-   The ~2% weekday cycle (Thursday highest, Sunday lowest) is already captured by the market index.
-7. **`quote_signal`** is weak. Price moves only ~2% between its lowest and highest tenth of loads, and it barely improves a fit that already has the other factors. It shows no link to the corrupted prices, so it is not leaking the label.
-8. **Noise:** about 2% of the price is left unexplained, and that percentage is the same at every distance. Errors therefore scale with the price itself.
+   The ~2% weekday cycle (Thursday highest, Sunday lowest) is mostly captured by the market index.
+7. **`quote_signal`** is weak and unstable. Price moves only ~2% between its lowest and highest tenth of loads. Its link to price switches on and off from month to month: clearly positive in January–March, June and September, absent in April, May, July and August, and reversed in October. It shows no link to the corrupted prices, so it is not leaking the label.
+8. **Noise:** about 1.8% of the price is left unexplained, and that percentage is the same at every distance. Errors therefore scale with the price itself.
 
 ![Distance and equipment](figures/eda/06_distance_equipment.png)
 ![Geography](figures/eda/07_geography.png)

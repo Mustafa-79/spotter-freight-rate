@@ -3,6 +3,10 @@
 Everything learned from data (fill values, city coordinates, category lists) is
 learned in FeatureBuilder.fit() from training rows only, so the same builder can
 be applied to validation, test and Spotter's loads without leaking information.
+
+quote_signal is deliberately left out: its relationship with price switches on
+and off from month to month, and a model that relies on it mispriced a whole
+validation fold by about 12% when the relationship shifted.
 """
 from __future__ import annotations
 
@@ -15,12 +19,13 @@ from freight.cleaning import SERIES_START, LabelScreen, fill_market_index, fix_w
 from freight.data import TARGET
 from freight.validation import Split
 
-QUARTER_END_WINDOW = 21  # days: prices ramp up over the last three weeks of each quarter
+QUARTER_END_WINDOW = 35  # days: prices start rising about five weeks before a quarter ends...
+QUARTER_END_SHAPE = 1.5  # ...and the rise accelerates into the last day
 
 NUMERIC = [
     "distance", "log_distance",
     "weight", "weight_missing", "weight_capped",
-    "market_index", "market_index_missing", "quote_signal",
+    "market_index", "market_index_missing",
     "pickup_lat", "pickup_lon", "delivery_lat", "delivery_lon",
     "days_since_start", "day_of_week", "days_to_quarter_end", "quarter_end_ramp",
 ]
@@ -35,8 +40,8 @@ def calendar_features(dates: pd.Series) -> pd.DataFrame:
         "days_since_start": (dates - SERIES_START).dt.days,
         "day_of_week": dates.dt.dayofweek,
         "days_to_quarter_end": days_to_qend,
-        # 0 until three weeks before a quarter ends, rising linearly to 1 on its last day
-        "quarter_end_ramp": ((QUARTER_END_WINDOW - days_to_qend) / QUARTER_END_WINDOW).clip(0, 1),
+        # 0 until five weeks before a quarter ends, then rising, ever faster, to 1 on its last day
+        "quarter_end_ramp": ((QUARTER_END_WINDOW - days_to_qend) / QUARTER_END_WINDOW).clip(0, 1) ** QUARTER_END_SHAPE,
     }, index=dates.index)
 
 
@@ -45,7 +50,6 @@ class FeatureBuilder:
 
     def fit(self, df: pd.DataFrame) -> "FeatureBuilder":
         self.weight_median_ = df["weight"].abs().median()
-        self.quote_median_ = df["quote_signal"].median()
         stops = pd.concat([
             df[[f"{side}", f"{side}_lat", f"{side}_lon"]].set_axis(["city", "lat", "lon"], axis=1)
             for side in ("pickup", "delivery")
@@ -69,8 +73,6 @@ class FeatureBuilder:
         out["weight_capped"] = clean["weight_capped"]
         out["market_index"] = clean["market_index"]
         out["market_index_missing"] = clean["market_index_missing"]
-        quote = clean["quote_signal"] if "quote_signal" in clean else pd.Series(np.nan, index=df.index)
-        out["quote_signal"] = quote.fillna(self.quote_median_)
         for side in ("pickup", "delivery"):
             for axis in ("lat", "lon"):
                 lookup = clean[side].map(self.city_coords_[axis])

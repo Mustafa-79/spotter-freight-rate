@@ -54,10 +54,11 @@ def test_label_screen_flags_exactly_the_scaled_prices():
     assert (flags.to_numpy() == corrupted).all()
 
 
-def test_quarter_end_ramp_covers_the_last_three_weeks():
-    dates = pd.Series(pd.to_datetime(["2025-03-10", "2025-03-11", "2025-03-31", "2025-04-01", "2025-12-31"]))
+def test_quarter_end_ramp_covers_the_last_five_weeks_and_accelerates():
+    dates = pd.Series(pd.to_datetime(["2025-02-24", "2025-03-10", "2025-03-31", "2025-04-01", "2025-12-31"]))
     ramp = calendar_features(dates)["quarter_end_ramp"]
-    assert ramp.tolist() == pytest.approx([0, 1 / 21, 1, 0, 1])
+    # 35 days out: 0; 21 days out: (14/35)^1.5; last day of a quarter: 1; first day of the next: 0
+    assert ramp.tolist() == pytest.approx([0, (14 / 35) ** 1.5, 1, 0, 1])
 
 
 def test_feature_builder_fills_columns_missing_from_new_rows():
@@ -69,6 +70,11 @@ def test_feature_builder_fills_columns_missing_from_new_rows():
     assert list(X.columns) == NUMERIC + CATEGORICAL
     assert not X.isna().any().any()
     assert (X["market_index"] == 1.05).all()
+
+
+def test_quote_signal_is_not_a_feature():
+    X = FeatureBuilder().fit(synthetic_loads()).transform(synthetic_loads().head(5))
+    assert "quote_signal" not in X.columns
 
 
 def test_validation_folds_stay_before_the_test_period_without_overlap():

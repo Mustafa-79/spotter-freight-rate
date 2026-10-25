@@ -72,7 +72,9 @@ The fixes follow the EDA findings ([`freight/cleaning.py`](freight/cleaning.py))
 - **Negative weights** are sign flips and are made positive; missing and capped (47,500 lb) weights are flagged.
 - **Missing market index** values are filled with the average of the same day's loads.
 
-[`freight/features.py`](freight/features.py) builds one feature table for every model: distance, equipment, weight, market index, `quote_signal`, pickup and delivery city with coordinates, and calendar features (time trend, weekday, position relative to the quarter end). Anything learned from data, including the corrupted-price screen, is fitted on each split's training rows only.
+[`freight/features.py`](freight/features.py) builds one feature table for every model: distance, equipment, weight, market index, pickup and delivery city with coordinates, and calendar features (time trend, weekday, and a quarter-end ramp that builds over the last five weeks of each quarter). Anything learned from data, including the corrupted-price screen, is fitted on each split's training rows only.
+
+`quote_signal` is deliberately left out: its relationship with price switches on and off from month to month, and in walk-forward validation a model using it mispriced a whole two-month fold by about 12%.
 
 ## Tests
 
