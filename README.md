@@ -12,7 +12,7 @@ The original assessment instructions are in [`docs/assessment_readme.md`](docs/a
 │   ├── train_test.csv                       # labelled development data (48,000 loads)
 │   ├── validation.csv                       # 12,000 loads to predict (no labels)
 │   ├── validation_predictions_template.csv  # load_id list to fill with predictions
-│   └── december_chart_inputs.csv            # 31 fixed-lane December rows to fill
+│   └── december_chart_inputs.csv            # 31 fixed-lane December rows, predicted_rate filled
 ├── docs/
 │   └── assessment_readme.md                 # instructions provided with the assessment
 ├── freight/
@@ -21,20 +21,24 @@ The original assessment instructions are in [`docs/assessment_readme.md`](docs/a
 │   ├── evaluate.py                          # scoring models on the folds and the test period
 │   ├── features.py                          # feature table shared by all models
 │   ├── models.py                            # baseline and final model
+│   ├── predict.py                           # trains the final model and writes the submission files
 │   ├── report_figures.py                    # report figures not produced by a notebook
 │   ├── style.py                             # shared figure style
 │   └── validation.py                        # time-based validation split and accuracy measures
 ├── notebooks/
 │   ├── 01_eda.ipynb                         # exploratory data analysis (labelled data only)
-│   └── 02_modelling.ipynb                   # baseline vs final model, and what the final model learned
+│   └── 02_modelling.ipynb                   # baseline vs final model on folds and test, and what it learned
 ├── reports/
 │   ├── eda_findings.md                      # summary of EDA findings
 │   └── figures/
 │       ├── eda/                             # EDA figures
 │       ├── model/                           # model comparison figures
 │       └── validation/                      # validation design figure
-├── tests/                                   # automated checks of cleaning, features and splits
+├── scorer_results/
+│   └── candidate_december.png               # December chart drawn by score.py
+├── tests/                                   # automated checks of cleaning, features, models and splits
 ├── score.py                                 # provided scorer: validates outputs, draws December chart
+├── validation_predictions.csv               # submission: predicted rate for each of the 12,000 loads
 ├── pytest.ini
 ├── requirements.txt
 └── README.md
@@ -92,6 +96,8 @@ The fixes follow the EDA findings ([`freight/cleaning.py`](freight/cleaning.py))
   - weekday, equipment, pickup and delivery city;
   - lane effects, shrunk strongly because each lane has only ~10 loads.
 
+  City effects follow a smooth regional pattern, so a city never seen in training (Spotter's set includes eight) takes the average learned effect of its three nearest known cities.
+
 [`notebooks/02_modelling.ipynb`](notebooks/02_modelling.ipynb) compares them on the walk-forward folds, shows what the final model learned, and scores both once on the September–October test period:
 
 | MAPE (average % error) | Walk-forward folds (Jan–Aug) | Test (Sep–Oct) |
@@ -113,12 +119,16 @@ python -m nbconvert --to notebook --execute --inplace notebooks/02_modelling.ipy
 python -m pytest
 ```
 
-## Scoring the outputs
-
-Once `validation_predictions.csv` and the `predicted_rate` column of `data/december_chart_inputs.csv` are filled:
+## Reproducing the submission
 
 ```bash
+python -m freight.predict
 python score.py --predictions validation_predictions.csv --december-predictions data/december_chart_inputs.csv
 ```
 
-This checks both files and writes `scorer_results/candidate_december.png`.
+[`freight/predict.py`](freight/predict.py) removes corrupted prices, trains the final model on all labelled data (January–October), and writes:
+
+- `validation_predictions.csv`: `load_id,predicted_rate` for the 12,000 loads in `data/validation.csv`, in the template's order;
+- `data/december_chart_inputs.csv`: its `predicted_rate` column filled. These rows carry no market index, so each December day takes the average market index of that day's loads in `data/validation.csv`.
+
+It also prints sanity checks, including how many loads involve cities not seen in training. `score.py` validates both files and draws `scorer_results/candidate_december.png`.
