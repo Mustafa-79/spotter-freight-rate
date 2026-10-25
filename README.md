@@ -16,12 +16,16 @@ The original assessment instructions are in [`docs/assessment_readme.md`](docs/a
 ├── docs/
 │   └── assessment_readme.md                 # instructions provided with the assessment
 ├── freight/
-│   └── style.py                             # shared figure style
+│   ├── report_figures.py                    # report figures not produced by a notebook
+│   ├── style.py                             # shared figure style
+│   └── validation.py                        # time-based validation split and accuracy measures
 ├── notebooks/
 │   └── 01_eda.ipynb                         # exploratory data analysis (labelled data only)
 ├── reports/
 │   ├── eda_findings.md                      # summary of EDA findings
-│   └── figures/eda/                         # EDA figures
+│   └── figures/
+│       ├── eda/                             # EDA figures
+│       └── validation/                      # validation design figure
 ├── score.py                                 # provided scorer: validates outputs, draws December chart
 ├── requirements.txt
 └── README.md
@@ -39,6 +43,20 @@ Findings are summarised in [`reports/eda_findings.md`](reports/eda_findings.md).
 
 ```bash
 python -m nbconvert --to notebook --execute --inplace notebooks/01_eda.ipynb
+```
+
+## Validation design
+
+Spotter's loads (November–December 2025) come after the labelled data, so validation is time-based ([`freight/validation.py`](freight/validation.py)):
+
+- **Model choices** use four walk-forward folds inside January–August. Each fold trains on everything up to a cut-off and is evaluated on the following two months (April–May, May–June, June–July, July–August).
+- **September–October** is a test period, scored once after the model is chosen.
+- **The final model** is retrained on all of January–October.
+
+Accuracy is measured as mean absolute percentage error (MAPE), with mean absolute error in dollars alongside. To redraw the timeline figure:
+
+```bash
+python -m freight.report_figures
 ```
 
 ## Scoring the outputs
